@@ -1,27 +1,68 @@
-name: Daily Commit
+name: Repository Automation Experiment
 
 on:
   schedule:
-    - cron: '15 4 * * *'
+    - cron: '30 0 * * *'
   workflow_dispatch:
 
 jobs:
-  commit:
+  automated-activity:
     runs-on: ubuntu-latest
+
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # ✅ allows push access
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit step - 23f1000968@ds.study.iitm.ac.in
+      - name: Configure Git Identity
         run: |
-          echo "TDSFU Daily run: $(date -u) TDSFU" >> daily-log.txt
+          git config user.name "aryanpatil97"
+          git config user.email "aryanpatil1611@gmail.com"
 
-      - name: Git Commit and Push
+      - name: Determine Activity Pattern
+        id: activity
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add daily-log.txt
-          git commit -m "Auto commit at $(date -u)" || echo "No changes to commit"
+          DAY_OF_WEEK=$(date -u +%u)
+          DAY_OF_YEAR=$(date -u +%j)
+
+          if [ "$DAY_OF_WEEK" -eq 7 ]; then
+            COMMITS=25
+            PATTERN="sunday-high-activity"
+          else
+            CYCLE=$((DAY_OF_YEAR % 3))
+
+            if [ "$CYCLE" -eq 0 ]; then
+              COMMITS=5
+              PATTERN="low-cycle"
+            elif [ "$CYCLE" -eq 1 ]; then
+              COMMITS=10
+              PATTERN="moderate-cycle"
+            else
+              COMMITS=15
+              PATTERN="high-cycle"
+            fi
+          fi
+
+          echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+          echo "pattern=$PATTERN" >> $GITHUB_OUTPUT
+
+      - name: Generate Experiment Commits
+        run: |
+          COUNT=${{ steps.activity.outputs.commits }}
+          PATTERN=${{ steps.activity.outputs.pattern }}
+
+          for ((i=1;i<=COUNT;i++))
+          do
+            TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+            echo "[$TIMESTAMP] experiment=repository-automation phase=$PATTERN iteration=$i" >> daily-log.txt
+
+            git add daily-log.txt
+            git commit -m "experiment(log): record automation cycle [$PATTERN] iteration $i"
+          done
+
+      - name: Push Changes
+        run: |
           git push
