@@ -1,10 +1,13 @@
-Automated Repository Activity Log
-Experiment: Repository Automation Behaviour Study
+# Daily Activity Log
+
 Maintainer: aryanpatil97
 
-Log Format
-[timestamp] experiment=<name> phase=<cycle> iteration=<n>
+Description:
+This log tracks incremental repository updates generated through a scheduled automation workflow.
+Each entry represents a small, timestamped change reflecting ongoing development activity.
 
+Format:
+[timestamp] activity iteration=<n> file=<filename>
 ---
 [2026-03-15T03:40:07Z] experiment=repository-automation phase=sunday-high-activity iteration=1
 [2026-03-15T03:40:07Z] experiment=repository-automation phase=sunday-high-activity iteration=2
