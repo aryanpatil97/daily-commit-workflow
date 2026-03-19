@@ -1,51 +1,78 @@
-# Automated Repository Activity Experiment
+# Daily Commit Workflow
 
-This repository demonstrates automated repository activity using GitHub Actions.
+A lightweight automation system for maintaining consistent repository activity using GitHub Actions.
 
-## Objective
+---
 
-The purpose of this project is to study scheduled automation workflows and repository update patterns using GitHub Actions.
+## Overview
 
-The workflow performs the following tasks:
+This repository implements a scheduled workflow that performs small, incremental updates on a daily basis. The system is designed to:
 
-- Runs on a daily schedule
-- Logs execution metadata
-- Creates controlled commit activity
-- Records timestamps and execution cycles
+- Maintain consistent development activity  
+- Track changes through structured logging  
+- Demonstrate practical usage of GitHub Actions for automation  
+- Ensure reliability through redundant scheduling and state tracking  
 
-## Experiment Design
+---
 
-Daily commit frequencies follow a repeating pattern:
+## Key Features
 
-| Day Cycle | Commits |
-|----------|--------|
-| Day 1 | 5 commits |
-| Day 2 | 10 commits |
-| Day 3 | 15 commits |
-| Sunday | 25 commits |
+- **Scheduled Execution**  
+  Runs automatically at predefined intervals using cron-based triggers.
 
-This simulates varying activity levels in automated systems.
+- **State-Aware Processing**  
+  Tracks the last successful execution to prevent missed updates.
 
-## Logged Information
+- **Incremental Logging**  
+  Records activity in a structured format for traceability.
 
-Each commit records:
+- **Resilient Workflow Design**  
+  Includes fallback scheduling and safe commit handling.
 
-- Execution timestamp
-- Workflow run metadata
-- Commit cycle number
+- **Multi-file Updates**  
+  Simulates realistic repository activity by updating multiple files.
 
-Example log entry:
-[2026-03-14T04:15:02Z] workflow-run cycle=2 commit=7
+---
 
-## Technologies
+## How It Works
 
-- GitHub Actions
-- Bash scripting
-- Cron scheduling
+1. The workflow runs on a scheduled basis.  
+2. It determines whether any activity was missed.  
+3. It generates one or more incremental updates.  
+4. Each update is committed with a timestamp.  
+5. The system records the latest successful execution state.  
 
-## Workflow Location
-.github/workflows/daily-commit.yml
+---
+
+## Activity Log Format
+
+Each log entry follows:
+[timestamp] activity iteration= file=
+
+### Example
+[2026-03-19T01:12:45Z] activity iteration=2 file=progress.md
+
+---
+
+## Technologies Used
+
+- GitHub Actions  
+- Bash scripting  
+- Cron scheduling  
+- JSON-based state management  
+
+---
+
+## Purpose
+
+This project demonstrates how scheduled workflows can be used to automate routine repository updates while maintaining consistency and traceability.
+
+---
 
 ## Notes
 
-This repository is intended purely for experimentation with CI automation and scheduled workflows.
+- The workflow is designed to be resilient against missed executions.  
+- All updates are incremental and logged for transparency.  
+- The system can be extended for more complex automation scenarios.  
+
+---
