@@ -1,8 +1,9 @@
-name: Repository Automation Experiment
+name: Daily Commit Workflow
 
 on:
   schedule:
-    - cron: '30 0 * * *'
+    - cron: '30 0 * * *'   # 6:00 AM IST
+    - cron: '30 3 * * *'   # 9:00 AM IST (backup)
   workflow_dispatch:
 
 jobs:
@@ -12,57 +13,100 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Configure Git Identity
         run: |
           git config user.name "aryanpatil97"
           git config user.email "aryanpatil1611@gmail.com"
 
-      - name: Determine Activity Pattern
-        id: activity
+      - name: Initialize State File
         run: |
-          DAY_OF_WEEK=$(date -u +%u)
-          DAY_OF_YEAR=$(date -u +%j)
-
-          if [ "$DAY_OF_WEEK" -eq 7 ]; then
-            COMMITS=25
-            PATTERN="sunday-high-activity"
-          else
-            CYCLE=$((DAY_OF_YEAR % 3))
-
-            if [ "$CYCLE" -eq 0 ]; then
-              COMMITS=5
-              PATTERN="low-cycle"
-            elif [ "$CYCLE" -eq 1 ]; then
-              COMMITS=10
-              PATTERN="moderate-cycle"
-            else
-              COMMITS=15
-              PATTERN="high-cycle"
-            fi
+          if [ ! -f .activity-state.json ]; then
+            echo '{"last_successful_date": ""}' > .activity-state.json
           fi
 
-          echo "commits=$COMMITS" >> $GITHUB_OUTPUT
-          echo "pattern=$PATTERN" >> $GITHUB_OUTPUT
-
-      - name: Generate Experiment Commits
+      - name: Generate Activity
         run: |
-          COUNT=${{ steps.activity.outputs.commits }}
-          PATTERN=${{ steps.activity.outputs.pattern }}
+          set -e
 
-          for ((i=1;i<=COUNT;i++))
+          TODAY=$(date -u +"%Y-%m-%d")
+          LAST_DATE=$(cat .activity-state.json | jq -r '.last_successful_date')
+
+          echo "Today: $TODAY"
+          echo "Last run: $LAST_DATE"
+
+          # First run fallback
+          if [ "$LAST_DATE" = "" ]; then
+            LAST_DATE=$(date -u -d "yesterday" +"%Y-%m-%d")
+          fi
+
+          START=$(date -d "$LAST_DATE +1 day" +%s)
+          END=$(date -d "$TODAY" +%s)
+
+          for ((d=$START; d<=END; d+=86400))
           do
-            TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            DATE=$(date -u -d "@$d" +"%Y-%m-%d")
+            echo "Processing date: $DATE"
 
-            echo "[$TIMESTAMP] experiment=repository-automation phase=$PATTERN iteration=$i" >> daily-log.txt
+            # Ensure minimum 1 commit
+            BASE=$((RANDOM % 3 + 1))     # 1–3
+            EXTRA=$((RANDOM % 3))        # +0–2
+            COMMITS=$((BASE + EXTRA))    # 1–5 typical
 
-            git add daily-log.txt
-            git commit -m "experiment(log): record automation cycle [$PATTERN] iteration $i"
+            # Weekend boost
+            DAY_OF_WEEK=$(date -u -d "$DATE" +%u)
+            if [ "$DAY_OF_WEEK" -eq 6 ] || [ "$DAY_OF_WEEK" -eq 7 ]; then
+              COMMITS=$((COMMITS + RANDOM % 4))
+            fi
+
+            for ((i=1;i<=COMMITS;i++))
+            do
+              OFFSET=$((RANDOM % 7200))  # spread across 2 hours
+              FAKE_TIME=$(date -u -d "$DATE + $OFFSET seconds" +"%Y-%m-%dT%H:%M:%SZ")
+
+              FILES=("daily-log.txt" "notes.txt" "progress.md")
+              FILE=${FILES[$RANDOM % ${#FILES[@]}]}
+
+              echo "[$FAKE_TIME] activity iteration=$i file=$FILE" >> $FILE
+
+              git add $FILE
+
+              MSGS=(
+                "update: progress log"
+                "fix: minor issue"
+                "docs: refine notes"
+                "refactor: improve structure"
+                "feat: small enhancement"
+                "chore: cleanup"
+                "style: formatting changes"
+                "perf: minor optimization"
+                "build: adjust config"
+                "test: add small test case"
+                "update: daily work"
+                "improve: code clarity"
+                "docs: add comments"
+                "refactor: simplify logic"
+                "feat: incremental progress"
+              )
+
+              MSG=${MSGS[$RANDOM % ${#MSGS[@]}]}
+
+              git commit --allow-empty -m "$MSG [$DATE-$i]" \
+              --date="$FAKE_TIME"
+            done
           done
+
+          echo "{\"last_successful_date\": \"$TODAY\"}" > .activity-state.json
+          git add .activity-state.json
+
+          git commit -m "chore: update activity state" || echo "No state change"
 
       - name: Push Changes
         run: |
-          git push
+          git push origin HEAD:main || echo "Push failed"
